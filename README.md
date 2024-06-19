@@ -13,6 +13,9 @@ This repository presents the rule files for the detection of insecure and unreac
 5. You will be able to visualize the example of the unreachable network
    <img width="960" alt="image" src="https://github.com/jaalvarado20/An-Asset-Administration-Shell-Submodel-for-Representing-the-Procedural-Part-of-ISA-88-Recipes/assets/73915924/bf2269cf-f605-4cf0-bb3e-e0ffa42ce462">
 
-6. The same procedure applies for the example of insecure networks.
+**The same procedure applies for the example of insecure networks.**
+
+
+
 
 

@@ -17,6 +17,9 @@ This repository presents the rule files for the detection of insecure and unreac
 
 To view the .AASX file generated in the implementation, you must install the AASX Package Explorer tool, which you can download from the following link https://github.com/eclipse-aaspe/package-explorer/releases
 
+Open "Crema Dental" file
+<img width="960" alt="image" src="https://github.com/jaalvarado20/An-Asset-Administration-Shell-Submodel-for-Representing-the-Procedural-Part-of-ISA-88-Recipes/assets/73915924/496f4674-8952-46d9-9963-8bb514f87b4e">
+
 
 
 

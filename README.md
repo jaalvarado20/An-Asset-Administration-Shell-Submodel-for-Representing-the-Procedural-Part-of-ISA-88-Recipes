@@ -15,6 +15,7 @@ This repository presents the rule files for the detection of insecure and unreac
 
 **The same procedure applies for the example of insecure networks.**
 
+To view the .AASX file generated in the implementation, you must install the AASX Package Explorer tool, which you can download from the following link https://github.com/eclipse-aaspe/package-explorer/releases
 
 
 

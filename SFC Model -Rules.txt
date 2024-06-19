@@ -1,0 +1,274 @@
+model Version3
+
+--Classes
+class Network
+attributes
+		isUnsafe: Boolean	derive: self.control->select(c| c.oclIsTypeOf(Loop))->collect(c|c.oclAsType(Loop))->exists(l| l.origTLoop->exists(t1, t2| t1.hasParallelLevel <> t2.hasParallelLevel)) or self.control->select(c| c.oclIsTypeOf(Loop))->collect(c|c.oclAsType(Loop))->exists(l| l.origTLoop->exists(t1, t2| t1.hasDivergentLevel <> t2.hasDivergentLevel))
+	   isUnreachable: Boolean 	derive: self.control->select(c| c.oclIsTypeOf(Loop))->collect(c|c.oclAsType(Loop))->exists(l| l.hasParallelLevel<0 or l.hasDivergentLevel<0)
+end
+
+class POU
+end
+
+class Node
+end
+
+class ActionBlock
+end
+
+class Step < Node	 
+attributes
+		hasParallelLevel: Integer	derive: if self.oclIsTypeOf(InitialStep) then 0 else 	
+								if self.origLoopS->notEmpty() then self.origLoopS.hasParallelLevel else
+								if self.origTS->notEmpty() then self.origTS.hasParallelLevel else 
+									if self.origCOSS->notEmpty() then self.origCOSS.hasParallelLevel else
+										self.origISSS.hasParallelLevel
+									endif
+								endif
+							endif
+						endif
+
+		hasDivergentLevel: Integer	derive: if self.oclIsTypeOf(InitialStep) then 0 else
+							if self.origTS-> notEmpty() then self.origTS.hasDivergentLevel else
+							if self.origLoopS->notEmpty() then self.origLoopS.hasDivergentLevel else
+							if self.origCOSS->notEmpty() then self.origCOSS.hasDivergentLevel else
+								self.origISSS.hasDivergentLevel
+							endif
+							endif	
+							endif	
+							endif
+		
+		stepFlag: Boolean
+		elapsedTime: String
+end
+
+class Transition < Node
+attributes
+       		   hasParallelLevel: Integer	derive:	if self.origST->notEmpty() then self.origST.hasParallelLevel else
+							if self.origIDST-> notEmpty() then self.origIDST.hasParallelLevel else
+							self.origCOSST.hasParallelLevel
+								endif
+								endif	
+
+		  hasDivergentLevel: Integer	derive: if self.origST-> notEmpty() then self.origST.hasDivergentLevel else
+							if self.origIDST-> notEmpty() then self.origIDST.hasDivergentLevel else
+							self.origCOSST.hasDivergentLevel
+								endif
+								endif
+		           priority: String
+		transitionCondition: Boolean												
+end
+
+
+class InitialStep < Step
+end
+
+class FinalStep < Step
+end
+
+class Control < Node
+end
+
+class Action
+attributes
+		Qualifier: Qualifier
+end
+
+class Qualifier
+attributes
+		valueType: String
+		    value: String
+end
+
+class InitialSimultaneousSequence < Control
+attributes
+		hasParallelLevel: Integer	derive: if self.origTISS->notEmpty() then self.origTISS.hasParallelLevel + 1 else self.origTISS.hasParallelLevel
+							endif
+
+		hasDivergentLevel: Integer	derive: if self.origTISS-> notEmpty() then self.origTISS.hasDivergentLevel else 0
+						endif
+end
+
+class InitialDivergentSequence < Control
+attributes
+		hasParallelLevel: Integer	derive: if self.origSIDS->notEmpty() then self.origSIDS.hasParallelLevel else 0
+							endif
+
+		hasDivergentLevel: Integer	derive: if self.origSIDS-> notEmpty() then self.origSIDS.hasDivergentLevel + 1 else 0
+							endif
+end
+
+class ConvergenceOfSequence < Control
+attributes
+		hasParallelLevel: Integer	derive: if self.origTCOS->notEmpty() then self.origTCOS.hasParallelLevel->min() else 0
+							endif
+		hasDivergentLevel: Integer	derive: if self.origTCOS-> notEmpty() then self.origTCOS.hasDivergentLevel ->min() - 1 else 0
+							endif
+end
+
+class ConvergenceOfSimultaneousSequence < Control
+attributes
+				
+		hasParallelLevel: Integer	derive: if self.origSCOSS-> notEmpty() then self.origSCOSS.hasParallelLevel -> min()-1 else 0
+							endif
+		hasDivergentLevel: Integer	derive: if self.origSCOSS-> notEmpty() then self.origSCOSS.hasDivergentLevel->min() else 0
+							endif
+end
+
+class Loop < Control
+attributes
+		hasParallelLevel: Integer	derive: self.origTLoop->select(t|not self.successorsTLoop 
+									->includes(t)).hasParallelLevel->min()	
+									
+	       hasDivergentLevel: Integer	derive: self.origTLoop->select(t|not self.successorsTLoop 
+									->includes(t)).hasDivergentLevel->min()	
+end
+
+--Associations
+
+association tLoopArc between
+Transition [2..*] role origTLoop
+Loop [0..1] role endTLoop
+end
+
+association loopSArc between
+Loop [0..1] role origLoopS
+Step [1] role endLoopS
+end
+
+composition hasNetwork between 
+POU [1] role todo
+Network [1..*] role parte
+end
+
+composition hasStep between
+Network [1] role network
+Step [2..*] role step
+end
+
+composition hasTransition between 
+Network [1] role network2
+Transition [1..*] role transition
+end
+
+composition hasControl between 
+Network [1] role network3
+Control [0..*] role control
+end
+
+association tInitSimSeqArc between 
+Transition [1] role origTISS 
+InitialSimultaneousSequence [0..1] role endTISS
+end
+
+association issSArc between
+InitialSimultaneousSequence [0..1] role origISSS
+Step [2..*] role endISSS
+end
+
+association sIDSArc between
+Step [1] role origSIDS 
+InitialDivergentSequence [0..1] role endSIDS
+end
+
+association initDivSeqTArc between
+InitialDivergentSequence [0..1] role origIDST
+Transition [2..*] role endIDST
+end
+
+association tCosArc between
+Transition [2..*] role origTCOS 
+ConvergenceOfSequence [0..1] role endTCOS
+end
+
+association endSCOS between
+ConvergenceOfSequence [0..1] role origCOSS
+Step [1] role endCOSS
+end 
+
+association sCOSSArc between
+Step [2..*] role origSCOSS
+ConvergenceOfSimultaneousSequence [0..1] role endSCOSS
+end
+
+association cossTArc between
+ConvergenceOfSimultaneousSequence [0..1] role origCOSST
+Transition [1] role endCOSST
+end	
+
+association sTArc between
+Step [0..1] role origST
+Transition [0..1] role endST
+end
+
+association tSArc between
+Transition [0..1] role origTS
+Step [0..1] role endTS
+end
+
+composition hasActionBlock between
+Step [1] role step
+ActionBlock [0..1] role actionBlock
+end
+
+association hasAction between
+ActionBlock [1] role actBlock
+Action [1..*] role action
+end
+
+association hasImmediateSucessor between
+Step [0..*] role immediatePredecessorStep  		
+Step [0..*] role immediateSuccessorStep			derive = self.endST->asSet().endTS->asSet()->union(self.endST->asSet().endTISS->asSet().endISSS->asSet())->union(self.endSIDS->asSet().endIDST->asSet().endTS->asSet())->union(self.endSCOSS->asSet().endCOSST->asSet().endTS->asSet())->union(self.endST->asSet().endTCOS->asSet().endCOSS->asSet())->union(self.endST->asSet().endTLoop->asSet().endLoopS->asSet())->excluding(null)
+end
+
+association hasSucessor between
+Step [0..*] role predecessorStep  		
+Step [0..*] role successorStep				derive = Set{self}->closure(immediateSuccessorStep)->excluding(self)
+end
+
+association tHasImmediateSuccessor between
+Transition [0..*] role immediatePredecessorTransition
+Step [0..*] role immediateSuccessorStepT			derive = self.endTISS->asSet().endISSS->asSet()->union(self.endTS->asSet())->union(self.endTCOS->asSet().endCOSS->asSet())->union(self.endTLoop->asSet().endLoopS->asSet()) 
+end
+
+association tHasSuccessorStep between
+Transition [0..*] role predecessorTransition
+Step	   [1..*] role succesorsSteps			derive = self.immediateSuccessorStepT.successorStep->asSet()->union(self.immediateSuccessorStepT)
+end
+
+association tHasimmediatePredecessorStep between
+Transition	[0..1] role immediateSuccessorTransition
+Step		[1..*] role immediatePredecessorStep   	derive = self.origST->asSet()->union(self.origIDST->asSet().origSIDS->asSet())->union(self.origCOSST->asSet().origSCOSS->asSet())
+end
+
+association tHasPredecessorStep between
+Transition [0..*] role successorTransition
+Step 	   [1..*] role predecessorStep			derive = self.immediatePredecessorStep.predecessorStep->asSet()->union(self.immediatePredecessorStep)
+end 
+
+association tHasimmediateSuccessorT between
+Transition [0..*] role immediateSuccessorTransitionT
+Transition [0..*] role immediatePredecessorTransitionT	 derive= self.origST->asSet().origTS->asSet()->union(self.origIDST->asSet().origSIDS->asSet().origTS->asSet())->union(self.origST->asSet().origCOSS->asSet().origTCOS->asSet())->union(self.origST->asSet().origLoopS->asSet().origTLoop->asSet())->union(self.origST->asSet().origISSS->asSet().origTISS->asSet())
+end
+
+association hasSuccessorT between
+Transition [0..*] role predecessorTransitionT
+Transition [0..*] role successorTransitionT		derive = Set{self}->closure(immediateSuccessorTransitionT)->excluding(self)
+end
+
+association LhasimmediateSucessorT between
+Loop [0..1] role predecessorLoop
+Transition [1..*] role immediatesucessorTransitionL	derive = self.endLoopS->asSet().endST->asSet()->union(self.endLoopS->asSet().endSIDS->asSet().endIDST->asSet())
+end
+
+association succesorsTL between
+Loop [0..1] role loopSTL
+Transition [1..*] role successorsTLoop			derive = self.immediatesucessorTransitionL.successorTransitionT->asSet()->union(self.immediatesucessorTransitionL)
+end
+
+constraints
+
+context Network
+inv: self.step->one(s| s.oclIsTypeOf(InitialStep))
+
+
